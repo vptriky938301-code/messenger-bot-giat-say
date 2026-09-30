@@ -186,12 +186,12 @@ def handle_message(sender_id, text):
 
     # 🤖 TẤT CẢ TIN NHẮN KHÁC → GEMINI AI
     else:
-        ai_response = ask_gemini(text)
+        ai_response = ask_gemini(text, sender_id=sender_id)
         # Retry 1 lần nếu rate limit
         if not ai_response:
             import time
             time.sleep(3)
-            ai_response = ask_gemini(text)
+            ai_response = ask_gemini(text, sender_id=sender_id)
 
         if ai_response:
             # Chia thành nhiều tin nhắn riêng (như người thật)

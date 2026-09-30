@@ -121,19 +121,26 @@ Khách: "tiệm tôi giặt đồ trắng hay bị ố vàng"
 """
 
 
-def ask_gemini(user_message):
-    """Gọi Gemini AI — tự động thử nhiều model nếu bị rate limit."""
+def ask_gemini(user_message, sender_id=None):
+    """Gọi Gemini AI — có nhớ lịch sử hội thoại."""
     if not client:
         return None
     
-    # Thử lần lượt các model (ưu tiên model mới nhất)
+    # Lưu tin nhắn khách vào history
+    if sender_id:
+        _add_to_history(sender_id, "user", user_message)
+    
+    # Build contents từ history (nếu có sender_id)
+    contents = _build_contents(sender_id) if sender_id else user_message
+    
+    # Thử lần lượt các model
     models = ["gemini-3.1-flash-lite"]
     
     for model_name in models:
         try:
             response = client.models.generate_content(
                 model=model_name,
-                contents=user_message,
+                contents=contents,
                 config=genai.types.GenerateContentConfig(
                     system_instruction=SYSTEM_PROMPT,
                     temperature=0.7,
@@ -145,6 +152,9 @@ def ask_gemini(user_message):
             )
             answer = response.text.strip() if response.text else None
             if answer:
+                # Lưu câu trả lời vào history
+                if sender_id:
+                    _add_to_history(sender_id, "model", answer)
                 print(f"🤖 [{model_name}] trả lời ({len(answer)} ký tự)")
                 return answer
         except Exception as e:
@@ -154,5 +164,64 @@ def ask_gemini(user_message):
     
     print("❌ Tất cả model đều lỗi")
     return None
+
+
+# ============================================
+# CHAT HISTORY — Nhớ ngữ cảnh hội thoại
+# ============================================
+import time as _time
+
+# {sender_id: [{"role": "user/model", "text": "...", "ts": timestamp}]}
+_chat_history = {}
+MAX_HISTORY = 10  # Giữ tối đa 10 lượt (5 cặp hỏi-đáp)
+HISTORY_TTL = 3600  # Xoá history sau 1 giờ không hoạt động
+
+
+def _add_to_history(sender_id, role, text):
+    """Thêm tin nhắn vào lịch sử."""
+    if sender_id not in _chat_history:
+        _chat_history[sender_id] = []
+    
+    _chat_history[sender_id].append({
+        "role": role,
+        "text": text,
+        "ts": _time.time()
+    })
+    
+    # Giữ tối đa MAX_HISTORY tin
+    if len(_chat_history[sender_id]) > MAX_HISTORY:
+        _chat_history[sender_id] = _chat_history[sender_id][-MAX_HISTORY:]
+    
+    # Dọn dẹp history cũ của người khác
+    _cleanup_old_history()
+
+
+def _build_contents(sender_id):
+    """Xây dựng nội dung gửi Gemini từ history."""
+    if sender_id not in _chat_history or len(_chat_history[sender_id]) <= 1:
+        # Chỉ có tin mới nhất, không cần history
+        return _chat_history[sender_id][-1]["text"] if _chat_history.get(sender_id) else ""
+    
+    # Build multi-turn conversation
+    contents = []
+    for msg in _chat_history[sender_id]:
+        contents.append(genai.types.Content(
+            role=msg["role"],
+            parts=[genai.types.Part(text=msg["text"])]
+        ))
+    return contents
+
+
+def _cleanup_old_history():
+    """Xoá history quá TTL."""
+    now = _time.time()
+    expired = [
+        sid for sid, msgs in _chat_history.items()
+        if msgs and (now - msgs[-1]["ts"]) > HISTORY_TTL
+    ]
+    for sid in expired:
+        del _chat_history[sid]
+        print(f"🗑️ Xoá history cũ: {sid[-6:]}")
+
 
 

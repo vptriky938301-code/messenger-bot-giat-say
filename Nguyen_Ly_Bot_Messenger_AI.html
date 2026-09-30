@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Nguyên Lý Bot Messenger AI</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=JetBrains+Mono:wght@400&display=swap');
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: 'Inter', sans-serif;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 40px 50px;
+    color: #1e293b;
+    line-height: 1.8;
+    font-size: 14px;
+    background: white;
+}
+h1 {
+    font-size: 24px;
+    color: #0f172a;
+    border-bottom: 3px solid #3b82f6;
+    padding-bottom: 12px;
+    margin-bottom: 8px;
+}
+h2 {
+    font-size: 18px;
+    color: #1e40af;
+    margin-top: 36px;
+    margin-bottom: 12px;
+    padding: 8px 14px;
+    background: linear-gradient(90deg, #eff6ff, transparent);
+    border-left: 4px solid #3b82f6;
+    border-radius: 0 6px 6px 0;
+    page-break-after: avoid;
+}
+h3 {
+    font-size: 15px;
+    color: #7c3aed;
+    margin-top: 20px;
+    margin-bottom: 8px;
+}
+p { margin: 8px 0; }
+hr { border: none; border-top: 2px solid #e2e8f0; margin: 28px 0; }
+code {
+    font-family: 'JetBrains Mono', monospace;
+    background: #f1f5f9;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 12px;
+    color: #dc2626;
+}
+pre {
+    background: #0f172a;
+    color: #e2e8f0;
+    padding: 18px 20px;
+    border-radius: 10px;
+    font-size: 12px;
+    line-height: 1.6;
+    overflow-x: auto;
+    margin: 12px 0;
+    page-break-inside: avoid;
+}
+pre code {
+    background: none;
+    color: #e2e8f0;
+    padding: 0;
+}
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 14px 0;
+    font-size: 13px;
+    page-break-inside: avoid;
+}
+th {
+    background: #1e40af;
+    color: white;
+    padding: 10px 14px;
+    text-align: left;
+    font-weight: 600;
+}
+td {
+    padding: 9px 14px;
+    border-bottom: 1px solid #e2e8f0;
+}
+tr:nth-child(even) { background: #f8fafc; }
+ol, ul { padding-left: 24px; margin: 8px 0; }
+li { margin: 4px 0; }
+.diagram-box {
+    background: linear-gradient(135deg, #eff6ff, #faf5ff);
+    border: 2px solid #93c5fd;
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin: 16px 0;
+    page-break-inside: avoid;
+}
+.flow {
+    text-align: center;
+    font-size: 16px;
+    font-weight: 600;
+    color: #1e40af;
+    line-height: 2;
+}
+.flow-title { font-weight: 700; color: #1e40af; margin-bottom: 10px; }
+.flow-steps { padding-left: 12px; }
+.step { padding: 4px 0; }
+.decision { color: #7c3aed; }
+.error { color: #dc2626; font-size: 13px; }
+.arrow { color: #94a3b8; font-size: 18px; padding: 2px 0; }
+.arch-table { border: none; margin-top: 10px; }
+.arch-table td { border: 1px solid #cbd5e1; padding: 12px; vertical-align: top; border-radius: 6px; }
+.cloud { background: #eff6ff; width: 50%; }
+.ext { background: #fef3c7; width: 50%; }
+.alert {
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin: 14px 0;
+    font-size: 13px;
+    line-height: 1.7;
+    page-break-inside: avoid;
+}
+.alert.note {
+    background: #eff6ff;
+    border-left: 4px solid #3b82f6;
+}
+.alert.tip {
+    background: #f0fdf4;
+    border-left: 4px solid #22c55e;
+}
+@media print {
+    body { padding: 20px 30px; }
+    h2 { page-break-after: avoid; }
+    pre, table, .diagram-box { page-break-inside: avoid; }
+}
+</style>
+</head>
+<body>
+<h1>🤖 Nguyên Lý Hoạt Động — Bot Messenger AI "Bí Quyết Giặt Sấy Dân Sinh"</h1>
+<h2>Tổng Quan: 3 Thành Phần Chính</h2>
+<div class="diagram-box"><div class="flow">👤 Khách nhắn tin &nbsp;→&nbsp; 📱 Facebook (Webhook) &nbsp;→&nbsp; 🖥️ Server (Railway) &nbsp;→&nbsp; 🧠 Gemini AI &nbsp;→&nbsp; Trả lời khách</div></div>
+
+<hr />
+<h2>Bước 1: Khách Nhắn Tin → Facebook Gửi Cho Bot</h2>
+<p>Khi khách nhắn "bọt nhiều có sạch không" trên Messenger:</p>
+<ol>
+<li>Facebook <strong>không giữ tin</strong> — nó lập tức gửi sang server của mình</li>
+<li>Gửi bằng <strong>HTTP POST</strong> request đến URL webhook đã đăng ký</li>
+<li>URL đó là: <code>https://biquyetgiatsay-bot-production.up.railway.app</code></li>
+</ol>
+<pre><code class="language-json">// Facebook gửi cái này cho server mình:
+{
+  &quot;sender&quot;: {&quot;id&quot;: &quot;27848080704863601&quot;},
+  &quot;message&quot;: {&quot;text&quot;: &quot;bọt nhiều có sạch không&quot;}
+}
+</code></pre>
+<div class="alert note">💡 <b>Lưu ý:</b> Đây là lý do cần **webhook URL cố định** — Facebook phải biết gửi tin đi đâu. Trước đây dùng Cloudflare tunnel (URL đổi liên tục), giờ dùng Railway (URL vĩnh viễn).
+</div>
+
+<hr />
+<h2>Bước 2: Server Nhận Tin → Xử Lý</h2>
+<p>File <a href="file:///Users/pc/Downloads/Học%20Marketing/Quản%20Lý%20Quảng%20Cáo%20cho%20Page%20%20%20Giặt%20Sấy%20Dân%20Sinh/M2_Messenger_Bot/auto_reply_bot.py">auto_reply_bot.py</a> là "bộ điều khiển":</p>
+<div class="diagram-box">
+<div class="flow-title">📊 Luồng xử lý tin nhắn:</div>
+<div class="flow-steps">
+<div class="step">📩 Nhận tin</div>
+<div class="arrow">↓</div>
+<div class="step decision">Gõ 1/2/3? → 📄 Gửi link cẩm nang</div>
+<div class="step decision">Câu khác? → 🧠 Gọi Gemini AI</div>
+<div class="arrow">↓</div>
+<div class="step">✅ Chia tin bằng ||| → Gửi từng tin</div>
+<div class="step error">❌ Nếu lỗi → Retry 3s hoặc fallback</div>
+</div></div>
+
+<p><strong>Công nghệ dùng:</strong>
+- <strong>Flask</strong> — web framework Python, nhận HTTP request từ Facebook
+- <strong>Gunicorn</strong> — chạy Flask ở production (2 workers xử lý đồng thời)
+- <strong>Threading</strong> — xử lý AI ở background thread, tránh Facebook timeout</p>
+<hr />
+<h2>Bước 3: Gemini AI — "Bộ Não" Của Bot</h2>
+<p>File <a href="file:///Users/pc/Downloads/Học%20Marketing/Quản%20Lý%20Quảng%20Cáo%20cho%20Page%20%20%20Giặt%20Sấy%20Dân%20Sinh/M2_Messenger_Bot/ai_engine.py">ai_engine.py</a> làm 3 việc:</p>
+<h3>3A. Nạp kiến thức (~160KB text)</h3>
+<pre><code>data/CAM_NANG_NUOC_GIAT_HOAN_CHINH.md  →  73,991 ký tự
+data/Cam_nang_nuoc_xa_vai.md            →  84,133 ký tự
+</code></pre>
+<p>Bot đọc toàn bộ 2 file này khi khởi động → nhét vào <strong>System Prompt</strong> → Gemini "thuộc lòng" hết.</p>
+<h3>3B. System Prompt — "Tính cách" của bot</h3>
+<p>Đây là phần quan trọng nhất, quyết định bot nói kiểu gì:</p>
+<table>
+<thead>
+<tr>
+<th>Quy tắc</th>
+<th>Mục đích</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>"Bạn là NGƯỜI THẬT, KHÔNG phải AI"</td>
+<td>Giọng tự nhiên, đời thường</td>
+</tr>
+<tr>
+<td>"Mỗi lượt 2-3 tin ngắn, dùng ||| ngăn cách"</td>
+<td>Chat như người thật, không gộp 1 đoạn dài</td>
+</tr>
+<tr>
+<td>"Dùng ạ, nha, hen, á, nè"</td>
+<td>Giọng Việt Nam thân thiện</td>
+</tr>
+<tr>
+<td>"Khi khách có nhu cầu → chốt SĐT"</td>
+<td>Thu lead cho đội sale</td>
+</tr>
+<tr>
+<td>"Nhắc nước xả thơm lâu sau sấy"</td>
+<td>Quảng bá sản phẩm nhẹ nhàng</td>
+</tr>
+</tbody>
+</table>
+<h3>3C. Gọi API Gemini</h3>
+<pre><code class="language-python"># Đơn giản thế này:
+response = gemini.generate_content(
+    model=&quot;gemini-3.1-flash-lite&quot;,     # Model nhanh, ổn định
+    contents=&quot;bọt nhiều có sạch không&quot;, # Câu hỏi của khách
+    system_instruction=SYSTEM_PROMPT,   # 160KB kiến thức + quy tắc
+)
+# → AI trả lời dựa trên kiến thức + quy tắc đã nạp
+</code></pre>
+<hr />
+<h2>Bước 4: Gửi Tin Về Cho Khách</h2>
+<pre><code class="language-python"># AI trả lời:
+# &quot;Ủa cái này hay|||Bọt không liên quan sạch đâu|||Tiệm dùng máy gì?&quot;
+
+# Bot chia thành 3 tin riêng:
+tin_1 = &quot;Ủa cái này hay&quot;        → gửi → đợi 1s
+tin_2 = &quot;Bọt không liên quan...&quot; → gửi → đợi 1s  
+tin_3 = &quot;Tiệm dùng máy gì?&quot;    → gửi
+</code></pre>
+<p>Gửi qua <strong>Facebook Send API</strong>:</p>
+<pre><code>POST https://graph.facebook.com/v21.0/me/messages
+Authorization: PAGE_ACCESS_TOKEN
+Body: {&quot;recipient&quot;: {&quot;id&quot;: &quot;...&quot;}, &quot;message&quot;: {&quot;text&quot;: &quot;...&quot;}}
+</code></pre>
+<hr />
+<h2>Kiến Trúc Tổng Thể</h2>
+<div class="diagram-box">
+<div class="flow-title">📊 Kiến trúc triển khai:</div>
+<table class="arch-table">
+<tr><td class="cloud">☁️ <b>Railway</b></td><td class="ext">🌐 <b>Bên ngoài</b></td></tr>
+<tr><td>• auto_reply_bot.py (Flask)<br>• ai_engine.py (Gemini)<br>• data/ (2 Cẩm nang)</td>
+<td>• Facebook Messenger API<br>• Google Gemini API</td></tr>
+</table></div>
+
+<hr />
+<h2>Tóm Tắt: Tại Sao Bot Này Hoạt Động?</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Thành phần</th>
+<th>Vai trò</th>
+<th>Công nghệ</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><strong>Facebook Webhook</strong></td>
+<td>Nhận/gửi tin nhắn Messenger</td>
+<td>Facebook Graph API</td>
+</tr>
+<tr>
+<td>2</td>
+<td><strong>Flask Server</strong></td>
+<td>Xử lý request, điều phối</td>
+<td>Python Flask + Gunicorn</td>
+</tr>
+<tr>
+<td>3</td>
+<td><strong>Gemini AI</strong></td>
+<td>"Bộ não" — hiểu câu hỏi, trả lời thông minh</td>
+<td>Google Gemini 3.1 Flash Lite</td>
+</tr>
+<tr>
+<td>4</td>
+<td><strong>System Prompt</strong></td>
+<td>"Tính cách" — giọng điệu, quy tắc, thu lead</td>
+<td>Prompt Engineering</td>
+</tr>
+<tr>
+<td>5</td>
+<td><strong>Cẩm nang 160KB</strong></td>
+<td>Kiến thức chuyên sâu về giặt là</td>
+<td>Markdown files</td>
+</tr>
+<tr>
+<td>6</td>
+<td><strong>Railway</strong></td>
+<td>Host server 24/7, URL cố định</td>
+<td>Cloud Platform</td>
+</tr>
+</tbody>
+</table>
+<div class="alert tip">💡 <b>Mẹo:</b> **Điều kỳ diệu nằm ở System Prompt + Data.** Cùng 1 codebase, nếu đổi System Prompt + đổi data → ra bot khác hoàn toàn (ví dụ: bot tư vấn mỹ phẩm, bot bán bất động sản...). Code chỉ là "ống nước", còn nước chảy qua (kiến thức + tính cách) mới quyết định bot hoạt động thế nào.
+</div>
+<div style="margin-top:40px; padding-top:20px; border-top:2px solid #e2e8f0; text-align:center; color:#94a3b8; font-size:12px;">
+Tài liệu nội bộ — Bí Quyết Giặt Sấy Dân Sinh © 2026
+</div>
+</body>
+</html>
