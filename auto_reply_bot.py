@@ -8,6 +8,7 @@ Tách riêng khỏi facebook_bot.py gốc để dễ quản lý.
 import os
 import threading
 import json
+import time
 import requests
 import logging
 import sys
@@ -134,6 +135,11 @@ KEYWORDS_NUOC_XA = ["nước xả", "nuoc xa", "xả"]
 # WEBHOOK HANDLERS
 # ============================================
 
+@app.route("/health", methods=["GET"])
+def health():
+    """Health check — Render và self-ping dùng endpoint này."""
+    return "OK", 200
+
 @app.route("/", methods=["GET"])
 def verify():
     """Xác thực webhook với Facebook."""
@@ -144,7 +150,23 @@ def verify():
     if mode == "subscribe" and token == VERIFY_TOKEN:
         safe_print("✅ Webhook verified!")
         return challenge, 200
+    # Nếu không có params (truy cập trực tiếp) → trả 200 thay vì 403
+    if not mode and not token:
+        return "Bot is running 🤖", 200
     return "Forbidden", 403
+
+
+def keep_alive():
+    """Self-ping mỗi 14 phút — giữ Render free tier luôn thức."""
+    url = os.environ.get("RENDER_EXTERNAL_URL", "")
+    if not url:
+        return  # Chỉ chạy trên Render, không chạy local
+    while True:
+        time.sleep(840)  # 14 phút
+        try:
+            requests.get(f"{url}/health", timeout=10)
+        except Exception:
+            pass
 
 
 @app.route("/", methods=["POST"])
@@ -333,5 +355,9 @@ if __name__ == "__main__":
     safe_print("🤖 Bot Bí Quyết Giặt Sấy Dân Sinh đang chạy...")
     safe_print(f"   Token: ...{PAGE_ACCESS_TOKEN[-10:]}")
     safe_print(f"   Verify: {VERIFY_TOKEN}")
+
+    # Giữ Render free tier luôn thức
+    threading.Thread(target=keep_alive, daemon=True).start()
+
     port = int(os.environ.get("PORT", 8000))
     app.run(host="0.0.0.0", port=port, debug=(port == 8000))
