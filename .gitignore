@@ -3,3 +3,6 @@ __pycache__/
 *.pyc
 .env
 .DS_Store
+bot.log
+bot_output.log
+nohup.out

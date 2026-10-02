@@ -9,10 +9,30 @@ import os
 import threading
 import json
 import requests
+import logging
+import sys
 from flask import Flask, request
 from knowledge_base import find_topic, get_answer, get_fun_reply
 from knowledge_deep import find_deep_topic
 from ai_engine import ask_gemini
+
+# Setup logging to file (tránh OSError khi terminal mất)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s [%(levelname)s] %(message)s',
+    handlers=[
+        logging.FileHandler("bot.log", encoding="utf-8"),
+        logging.StreamHandler(sys.stderr)
+    ]
+)
+logger = logging.getLogger(__name__)
+
+def safe_print(msg):
+    """Print an toàn — nếu terminal mất thì ghi log thay."""
+    try:
+        print(msg, flush=True)
+    except OSError:
+        logger.info(msg)
 
 # ============================================
 # CẤU HÌNH
@@ -122,7 +142,7 @@ def verify():
     challenge = request.args.get("hub.challenge")
 
     if mode == "subscribe" and token == VERIFY_TOKEN:
-        print("✅ Webhook verified!")
+        safe_print("✅ Webhook verified!")
         return challenge, 200
     return "Forbidden", 403
 
@@ -145,7 +165,7 @@ def webhook():
                 msg_id = event["message"].get("mid", "")
                 # Chống trùng: skip nếu đã xử lý message này
                 if msg_id in PROCESSED_MSGS:
-                    print(f"⏭️ Skip duplicate: {msg_id[-8:]}")
+                    safe_print(f"⏭️ Skip duplicate: {msg_id[-8:]}")
                     continue
                 PROCESSED_MSGS.add(msg_id)
                 # Giữ cache nhỏ
@@ -153,7 +173,7 @@ def webhook():
                     PROCESSED_MSGS.clear()
 
                 text = event["message"]["text"].strip().lower()
-                print(f"📩 Nhận: '{text}' từ {sender_id}")
+                safe_print(f"📩 Nhận: '{text}' từ {sender_id}")
                 # Xử lý trong background thread → không block webhook
                 threading.Thread(
                     target=handle_message,
@@ -231,9 +251,9 @@ def send_text(recipient_id, text):
     }
     response = requests.post(API_URL, json=payload)
     if response.status_code == 200:
-        print(f"✅ Sent to {recipient_id}")
+        safe_print(f"✅ Sent to {recipient_id}")
     else:
-        print(f"❌ Error {response.status_code}: {response.text}")
+        safe_print(f"❌ Error {response.status_code}: {response.text}")
     return response
 
 
@@ -307,11 +327,11 @@ if __name__ == "__main__":
         )
 
     if not PAGE_ACCESS_TOKEN:
-        print("❌ Thiếu PAGE_ACCESS_TOKEN! Kiểm tra file .env")
+        safe_print("❌ Thiếu PAGE_ACCESS_TOKEN! Kiểm tra file .env")
         exit(1)
 
-    print("🤖 Bot Bí Quyết Giặt Sấy Dân Sinh đang chạy...")
-    print(f"   Token: ...{PAGE_ACCESS_TOKEN[-10:]}")
-    print(f"   Verify: {VERIFY_TOKEN}")
+    safe_print("🤖 Bot Bí Quyết Giặt Sấy Dân Sinh đang chạy...")
+    safe_print(f"   Token: ...{PAGE_ACCESS_TOKEN[-10:]}")
+    safe_print(f"   Verify: {VERIFY_TOKEN}")
     port = int(os.environ.get("PORT", 8000))
     app.run(host="0.0.0.0", port=port, debug=(port == 8000))
