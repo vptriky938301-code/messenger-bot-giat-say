@@ -1,0 +1,8 @@
+.env
+__pycache__/
+*.pyc
+*.log
+bot.log
+.venv/
+venv/
+data/leads_quatang.json
