@@ -12,6 +12,11 @@ import time
 import requests
 import logging
 import sys
+from dotenv import load_dotenv
+
+# Tự động nạp .env ngay khi file được import
+load_dotenv()
+
 from flask import Flask, request
 from knowledge_base import find_topic, get_answer, get_fun_reply
 from knowledge_deep import find_deep_topic
@@ -56,7 +61,11 @@ LINK_CAM_NANG_NUOC_XA = os.environ.get(
     "https://drive.google.com/your-link-nuoc-xa"
 )
 
-API_URL = f"https://graph.facebook.com/v21.0/me/messages?access_token={PAGE_ACCESS_TOKEN}"
+def get_api_url():
+    token = os.environ.get("PAGE_ACCESS_TOKEN", "") or PAGE_ACCESS_TOKEN
+    return f"https://graph.facebook.com/v21.0/me/messages?access_token={token}"
+
+API_URL = get_api_url()
 
 app = Flask(__name__)
 
@@ -139,6 +148,22 @@ KEYWORDS_NUOC_XA = ["nước xả", "nuoc xa", "xả"]
 def health():
     """Health check — Render và self-ping dùng endpoint này."""
     return "OK", 200
+
+@app.route("/status", methods=["GET"])
+def status():
+    """Kiểm tra chi tiết trạng thái hoạt động của Bot."""
+    from ai_engine import get_client
+    c = get_client()
+    token = os.environ.get("PAGE_ACCESS_TOKEN", "") or PAGE_ACCESS_TOKEN
+    key = os.environ.get("GEMINI_API_KEY", "")
+    return {
+        "status": "online",
+        "bot_name": "Bí Quyết Giặt Sấy Dân Sinh",
+        "facebook_token_configured": bool(token),
+        "facebook_token_preview": f"{token[:8]}...{token[-6:]}" if token else None,
+        "gemini_api_key_configured": bool(key),
+        "gemini_client_ready": bool(c)
+    }, 200
 
 @app.route("/", methods=["GET"])
 def verify():
@@ -271,7 +296,8 @@ def send_text(recipient_id, text):
         "message": {"text": text},
         "messaging_type": "RESPONSE"
     }
-    response = requests.post(API_URL, json=payload)
+    api_url = get_api_url()
+    response = requests.post(api_url, json=payload)
     if response.status_code == 200:
         safe_print(f"✅ Sent to {recipient_id}")
     else:
@@ -295,7 +321,8 @@ def send_buttons(recipient_id, text, buttons):
         },
         "messaging_type": "RESPONSE"
     }
-    response = requests.post(API_URL, json=payload)
+    api_url = get_api_url()
+    response = requests.post(api_url, json=payload)
     return response
 
 

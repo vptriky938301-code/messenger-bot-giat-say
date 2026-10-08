@@ -4,7 +4,10 @@ Nạp toàn bộ 2 Cẩm nang (200KB) + Brand DNA BHS 2S làm nguyên liệu ch�
 Model: gemini-2.5-flash
 """
 import os
+from dotenv import load_dotenv
 from google import genai
+
+load_dotenv()
 
 # ============================================
 # GEMINI CLIENT
@@ -12,11 +15,26 @@ from google import genai
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 
 client = None
-if GEMINI_API_KEY:
-    client = genai.Client(api_key=GEMINI_API_KEY)
-    print(f"✅ Gemini AI đã kết nối (key: ...{GEMINI_API_KEY[-6:]})")
-else:
-    print("⚠️ Chưa có GEMINI_API_KEY — bot chạy chế độ keyword")
+
+def get_client():
+    """Khởi tạo hoặc lấy client Gemini."""
+    global client, GEMINI_API_KEY
+    if client:
+        return client
+    key = os.environ.get("GEMINI_API_KEY", "") or GEMINI_API_KEY
+    if key:
+        try:
+            client = genai.Client(api_key=key)
+            GEMINI_API_KEY = key
+            print(f"✅ Gemini AI đã kết nối (key: ...{key[-6:]})")
+            return client
+        except Exception as e:
+            print(f"❌ Lỗi khởi tạo Gemini client: {e}")
+            return None
+    return None
+
+# Thử khởi tạo ban đầu
+get_client()
 
 # ============================================
 # NẠP DỮ LIỆU TỪ 2 CẨM NANG
@@ -123,43 +141,38 @@ Khách: "tiệm tôi giặt đồ trắng hay bị ố vàng"
 
 def ask_gemini(user_message, sender_id=None):
     """Gọi Gemini AI — có nhớ lịch sử hội thoại."""
-    if not client:
+    ai_client = get_client()
+    if not ai_client:
         return None
     
-    # Lưu tin nhắn khách vào history
-    if sender_id:
-        _add_to_history(sender_id, "user", user_message)
-    
     # Build contents từ history (nếu có sender_id)
-    contents = _build_contents(sender_id) if sender_id else user_message
+    contents = _build_contents(sender_id, user_message) if sender_id else user_message
     
-    # Thử lần lượt các model
-    models = ["gemini-3.1-flash-lite"]
+    # Thử lần lượt các model chất lượng cao và tốc độ nhanh
+    models = ["gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-2.5-flash"]
     
     for model_name in models:
         try:
-            response = client.models.generate_content(
+            response = ai_client.models.generate_content(
                 model=model_name,
                 contents=contents,
                 config=genai.types.GenerateContentConfig(
                     system_instruction=SYSTEM_PROMPT,
                     temperature=0.7,
                     max_output_tokens=1024,
-                    thinking_config=genai.types.ThinkingConfig(
-                        thinking_budget=0
-                    ),
                 )
             )
             answer = response.text.strip() if response.text else None
             if answer:
-                # Lưu câu trả lời vào history
+                # Chỉ lưu cặp hỏi-đáp vào history khi đã có câu trả lời thành công
                 if sender_id:
+                    _add_to_history(sender_id, "user", user_message)
                     _add_to_history(sender_id, "model", answer)
                 print(f"🤖 [{model_name}] trả lời ({len(answer)} ký tự)")
                 return answer
         except Exception as e:
-            err = str(e)[:80]
-            print(f"⚠️ {model_name}: {err}")
+            err = str(e)[:120]
+            print(f"⚠️ {model_name} lỗi: {err}")
             continue
     
     print("❌ Tất cả model đều lỗi")
@@ -196,19 +209,23 @@ def _add_to_history(sender_id, role, text):
     _cleanup_old_history()
 
 
-def _build_contents(sender_id):
-    """Xây dựng nội dung gửi Gemini từ history."""
-    if sender_id not in _chat_history or len(_chat_history[sender_id]) <= 1:
-        # Chỉ có tin mới nhất, không cần history
-        return _chat_history[sender_id][-1]["text"] if _chat_history.get(sender_id) else ""
+def _build_contents(sender_id, user_message):
+    """Xây dựng nội dung gửi Gemini từ history + tin nhắn hiện tại."""
+    history = _chat_history.get(sender_id, [])
+    if not history:
+        return user_message
     
     # Build multi-turn conversation
     contents = []
-    for msg in _chat_history[sender_id]:
+    for msg in history:
         contents.append(genai.types.Content(
             role=msg["role"],
             parts=[genai.types.Part(text=msg["text"])]
         ))
+    contents.append(genai.types.Content(
+        role="user",
+        parts=[genai.types.Part(text=user_message)]
+    ))
     return contents
 
 
