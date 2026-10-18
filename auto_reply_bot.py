@@ -54,11 +54,11 @@ PROCESSED_MSGS = set()
 # Link tài liệu (thay link thật vào đây hoặc trong .env)
 LINK_CAM_NANG_NUOC_GIAT = os.environ.get(
     "LINK_CAM_NANG_NUOC_GIAT",
-    "https://drive.google.com/your-link-nuoc-giat"
+    "https://drive.google.com/file/d/1GNM6781F7Tlr90y2YAZ4ZeMjid0LatED/view"
 )
 LINK_CAM_NANG_NUOC_XA = os.environ.get(
     "LINK_CAM_NANG_NUOC_XA",
-    "https://drive.google.com/your-link-nuoc-xa"
+    "https://drive.google.com/file/d/1t_XN1BcTiDXbeeKWBpqNI-C-aJR11Xns/view"
 )
 
 def get_api_url():
@@ -166,6 +166,7 @@ def status():
     }, 200
 
 @app.route("/", methods=["GET"])
+@app.route("/webhook", methods=["GET"])
 def verify():
     """Xác thực webhook với Facebook."""
     mode = request.args.get("hub.mode")
@@ -195,12 +196,13 @@ def keep_alive():
 
 
 @app.route("/", methods=["POST"])
+@app.route("/webhook", methods=["POST"])
 def webhook():
     """Nhận và xử lý tin nhắn từ Messenger.
     Trả 200 NGAY → xử lý AI trong background thread."""
     data = request.get_json()
 
-    if data.get("object") != "page":
+    if not data or data.get("object") != "page":
         return "Not a page event", 404
 
     for entry in data.get("entry", []):
@@ -241,36 +243,60 @@ def webhook():
 # ============================================
 
 def handle_message(sender_id, text):
-    """Gõ 1/2/3 → gửi link. Mọi thứ khác → Gemini AI trả lời."""
+    """Gõ 1/2/3 → gửi link. Mọi thứ khác → Gemini AI trả lời (kèm fallback Knowledge Base khi AI lỗi)."""
 
     # Gõ số 1, 2, 3 → gửi link cẩm nang
     if text in ("1",):
         send_text(sender_id, MSG_GUI_NUOC_GIAT)
+        return
     elif text in ("2",):
         send_text(sender_id, MSG_GUI_NUOC_XA)
+        return
     elif text in ("3",):
         send_text(sender_id, MSG_GUI_CA_HAI)
+        return
 
-    # 🤖 TẤT CẢ TIN NHẮN KHÁC → GEMINI AI
-    else:
+    # 🤖 ƯU TIÊN GỌI GEMINI AI
+    ai_response = ask_gemini(text, sender_id=sender_id)
+    if not ai_response:
+        time.sleep(2)
         ai_response = ask_gemini(text, sender_id=sender_id)
-        # Retry 1 lần nếu rate limit
-        if not ai_response:
-            import time
-            time.sleep(3)
-            ai_response = ask_gemini(text, sender_id=sender_id)
 
-        if ai_response:
-            # Chia thành nhiều tin nhắn riêng (như người thật)
-            parts = [p.strip() for p in ai_response.split("|||") if p.strip()]
-            for i, part in enumerate(parts):
-                send_text(sender_id, part)
-                if i < len(parts) - 1:
-                    import time
-                    time.sleep(1)
+    if ai_response:
+        # Chia thành nhiều tin nhắn riêng (như người thật)
+        parts = [p.strip() for p in ai_response.split("|||") if p.strip()]
+        for i, part in enumerate(parts):
+            send_text(sender_id, part)
+            if i < len(parts) - 1:
+                time.sleep(1)
+        return
+
+    # 📚 FALLBACK KHI GEMINI AI LỖI (Key hết hạn/leaked hoặc đứt kết nối)
+    if any(kw in text for kw in KEYWORDS_CAM_NANG):
+        if any(kw in text for kw in KEYWORDS_NUOC_GIAT) and not any(kw in text for kw in KEYWORDS_NUOC_XA):
+            send_text(sender_id, MSG_GUI_NUOC_GIAT)
+        elif any(kw in text for kw in KEYWORDS_NUOC_XA) and not any(kw in text for kw in KEYWORDS_NUOC_GIAT):
+            send_text(sender_id, MSG_GUI_NUOC_XA)
         else:
-            # Fallback ngắn gọn khi AI lỗi
-            send_text(sender_id, "Anh/chị chờ mình xíu nha, mình đang bận tí 😊 Nhắn lại sau ít phút mình trả lời ngay ạ!")
+            send_text(sender_id, MSG_GUI_CA_HAI)
+        return
+
+    deep_answer = find_deep_topic(text)
+    if deep_answer:
+        send_text(sender_id, deep_answer)
+        return
+
+    topic = find_topic(text)
+    if topic:
+        kb_answer = get_answer(topic)
+        if kb_answer:
+            send_text(sender_id, kb_answer)
+            return
+
+    if any(g in text for g in ["chào", "chao", "hi", "hello", "alo", "ad", "shop", "tư vấn", "tu van"]):
+        send_text(sender_id, MSG_CHAO_MUNG)
+    else:
+        send_text(sender_id, get_fun_reply())
 
 
 def handle_postback(sender_id, payload):

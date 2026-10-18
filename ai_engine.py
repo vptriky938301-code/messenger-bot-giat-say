@@ -149,7 +149,7 @@ def ask_gemini(user_message, sender_id=None):
     contents = _build_contents(sender_id, user_message) if sender_id else user_message
     
     # Thử lần lượt các model chất lượng cao và tốc độ nhanh
-    models = ["gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-2.5-flash"]
+    models = ["gemini-3.1-flash-lite", "gemini-3.8-flash", "gemini-2.5-flash"]
     
     for model_name in models:
         try:
