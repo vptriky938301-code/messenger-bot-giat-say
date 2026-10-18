@@ -39,15 +39,21 @@ def _add_to_history(sender_id, role, text):
     if len(CHAT_HISTORIES[sender_id]) > MAX_HISTORY_TURNS * 2:
         CHAT_HISTORIES[sender_id] = CHAT_HISTORIES[sender_id][-MAX_HISTORY_TURNS * 2:]
 
-def _build_contents(sender_id):
+def _build_contents(sender_id, user_message):
     """Chuyển lịch sử chat thành format genai."""
     history = CHAT_HISTORIES.get(sender_id, [])
+    if not history:
+        return user_message
     contents = []
     for turn in history:
-        contents.append({
-            "role": turn["role"],
-            "parts": [{"text": turn["text"]}]
-        })
+        contents.append(genai.types.Content(
+            role=turn["role"],
+            parts=[genai.types.Part(text=turn["text"])]
+        ))
+    contents.append(genai.types.Content(
+        role="user",
+        parts=[genai.types.Part(text=user_message)]
+    ))
     return contents
 
 # ============================================
@@ -90,12 +96,9 @@ def ask_gemini(user_message, sender_id=None):
     if not client:
         return None
     
-    if sender_id:
-        _add_to_history(sender_id, "user", user_message)
+    contents = _build_contents(sender_id, user_message) if sender_id else user_message
     
-    contents = _build_contents(sender_id) if sender_id else user_message
-    
-    models = ["gemini-2.5-flash", "gemini-1.5-flash"]
+    models = ["gemini-3.1-flash-lite", "gemini-3.8-flash", "gemini-2.5-flash"]
     
     for model_name in models:
         try:
@@ -111,6 +114,7 @@ def ask_gemini(user_message, sender_id=None):
             answer = response.text.strip() if response.text else None
             if answer:
                 if sender_id:
+                    _add_to_history(sender_id, "user", user_message)
                     _add_to_history(sender_id, "model", answer)
                 return answer
         except Exception as e:

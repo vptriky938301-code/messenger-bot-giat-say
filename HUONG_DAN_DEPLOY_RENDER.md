@@ -38,9 +38,9 @@ Khi tạo Web Service trên [Dashboard Render](https://dashboard.render.com), b�
 
 | Key | Value | Ghi chú |
 |---|---|---|
-| `PAGE_ACCESS_TOKEN` | `EAAS1grMj8M0BSlZCPyZCt7mB7UtLaKCKhqaZBGg3sZCBoF89MZCv3PqWhiXWcK3ZBClAz5D40TY8X8fB2O2TSFXHL7Ofyl57gSYs0OOZCg8Hblf8mJHNFlOrgnMcg4ZB4JsRT6Mn8clm8dJvLeZCUEpB69rCH5Sd9yXANv2ejFAG88vftPLXgc53ZBRwocywYQYvAbUXs0dEP4` | Token vĩnh viễn của Page Quà Tặng |
+| `PAGE_ACCESS_TOKEN` | `<Lấy trong file .env cục bộ>` | Token vĩnh viễn của Page Quà Tặng |
 | `VERIFY_TOKEN` | `bhs_quatang_verify_2026` | Token xác thực Webhook |
-| `GEMINI_API_KEY` | `AIzaSyCHkyO7tqE85nnD35NgYlvRREVf-kyf0Zs` | Key kết nối Google Gemini AI |
+| `GEMINI_API_KEY` | `<Lấy key mới từ Google AI Studio>` | Key kết nối Google Gemini AI (TUYỆT ĐỐI KHÔNG COMMIT LÊN GITHUB) |
 | `PYTHON_VERSION` | `3.13.0` | Phiên bản Python chuẩn |
 
 ---
