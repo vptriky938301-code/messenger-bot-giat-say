@@ -40,6 +40,7 @@ logger = logging.getLogger(__name__)
 # ============================================
 PAGE_ACCESS_TOKEN = os.environ.get("PAGE_ACCESS_TOKEN", "")
 VERIFY_TOKEN = os.environ.get("VERIFY_TOKEN", "bhs_quatang_verify_2026")
+BOT_ENABLED = os.environ.get("BOT_ENABLED", "false").lower() == "true"
 PORT = int(os.environ.get("PORT", 5001))
 LINK_CATALOG = os.environ.get("LINK_CATALOG_QUA_TANG", "https://example.com/catalog-qua-tang-bhs2s-2026.pdf")
 
@@ -246,6 +247,10 @@ def verify():
 @app.route("/webhook", methods=["POST"])
 def webhook():
     """Xử lý nhận tin nhắn từ Facebook Messenger."""
+    if not BOT_ENABLED:
+        logger.info("⏸️ Bot đang TẮT (BOT_ENABLED=false) — Bỏ qua tin nhắn để admin tự trả lời.")
+        return "EVENT_RECEIVED", 200
+
     data = request.get_json()
     if not data or data.get("object") != "page":
         return "EVENT_RECEIVED", 200
