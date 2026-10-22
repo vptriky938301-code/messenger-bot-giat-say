@@ -47,6 +47,7 @@ def safe_print(msg):
 # Đọc từ .env hoặc đặt trực tiếp
 PAGE_ACCESS_TOKEN = os.environ.get("PAGE_ACCESS_TOKEN", "")
 VERIFY_TOKEN = os.environ.get("VERIFY_TOKEN", "biquyetgiatsay_verify_2026")
+BOT_ENABLED = os.environ.get("BOT_ENABLED", "false").lower() == "true"
 
 # Chống trùng message (Facebook retry khi webhook chậm)
 PROCESSED_MSGS = set()
@@ -200,6 +201,10 @@ def keep_alive():
 def webhook():
     """Nhận và xử lý tin nhắn từ Messenger.
     Trả 200 NGAY → xử lý AI trong background thread."""
+    if not BOT_ENABLED:
+        safe_print("⏸️ Bot đang TẮT (BOT_ENABLED=false) — Bỏ qua tin nhắn để admin tự trả lời.")
+        return "OK (Bot Paused)", 200
+
     data = request.get_json()
 
     if not data or data.get("object") != "page":
